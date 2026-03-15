@@ -8,6 +8,7 @@ export interface RawSessionSnapshot {
   payload: {
     tempo: number;
     signature: { numerator: number; denominator: number };
+    sampleRate: number;
     tracks: RawTrack[];
     returnTracks: RawTrack[];
     masterTrack: RawTrack;
@@ -23,13 +24,18 @@ export interface RawTrack {
   panning: number; // -1 to 1
   mute: boolean;
   solo: boolean;
+  arm: boolean;
+  monitoring: string; // "in" | "auto" | "off"
   outputRouting: string;
+  outputMeterLeft: number; // current meter level 0-1
+  outputMeterRight: number;
   hasAudioInput: boolean;
   hasMidiInput: boolean;
   isGroupTrack: boolean;
-  groupId: string | null;
+  groupId: string | null; // id of parent group track
   sends: RawSend[];
   devices: RawDevice[];
+  clipNames: string[]; // names of clips in clip slots
 }
 
 export interface RawSend {
@@ -61,6 +67,7 @@ export interface RawParameter {
 export interface SemanticSession {
   tempo: string;
   signature: string;
+  sampleRate: string;
   trackCount: number;
   groupCount: number;
   returnTrackCount: number;
@@ -79,10 +86,14 @@ export interface SemanticTrack {
   panning: string;
   muted: boolean;
   soloed: boolean;
+  armed: boolean;
+  monitoring: string;
   group: string | null;
   outputRouting: string;
+  outputLevel: string; // human-readable meter level
   sends: Record<string, string>;
   devices: SemanticDevice[];
+  clipNames: string[];
 }
 
 export interface SemanticDevice {

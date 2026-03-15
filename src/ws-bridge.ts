@@ -1,5 +1,6 @@
 import { WebSocketServer, WebSocket } from "ws";
 import { EventEmitter } from "events";
+import { execSync } from "child_process";
 import type {
   RawSessionSnapshot,
   SessionCache,
@@ -20,26 +21,32 @@ export class WsBridge extends EventEmitter {
   };
 
   async start(port: number): Promise<void> {
-    // If the port is still held by a previous instance, wait briefly and retry
-    const tryListen = (attempt: number): Promise<WebSocketServer> =>
-      new Promise((resolve, reject) => {
-        const server = new WebSocketServer({ port });
-        server.on("listening", () => resolve(server));
-        server.on("error", (err: NodeJS.ErrnoException) => {
-          server.close();
-          if (err.code === "EADDRINUSE" && attempt < 8) {
-            const delay = Math.min(attempt * 1000, 5000);
-            console.error(
-              `[ws-bridge] Port ${port} in use, retrying in ${delay / 1000}s (attempt ${attempt}/8)...`,
-            );
-            setTimeout(() => tryListen(attempt + 1).then(resolve, reject), delay);
-          } else {
-            reject(err);
+    // Kill any stale process on this port before binding
+    try {
+      const pids = execSync(`lsof -ti:${port}`, { encoding: "utf8" }).trim();
+      if (pids) {
+        const myPid = process.pid.toString();
+        for (const pid of pids.split("\n")) {
+          if (pid && pid !== myPid) {
+            console.error(`[ws-bridge] Killing stale process ${pid} on port ${port}`);
+            try { execSync(`kill ${pid}`); } catch {}
           }
-        });
-      });
+        }
+        // Brief wait for port release
+        await new Promise((r) => setTimeout(r, 500));
+      }
+    } catch {
+      // lsof returns non-zero if no process found — that's fine
+    }
 
-    this.wss = await tryListen(1);
+    this.wss = await new Promise<WebSocketServer>((resolve, reject) => {
+      const server = new WebSocketServer({ port });
+      server.on("listening", () => resolve(server));
+      server.on("error", (err: NodeJS.ErrnoException) => {
+        server.close();
+        reject(err);
+      });
+    });
 
     this.wss.on("connection", (ws) => {
       console.error("[ws-bridge] M4L device connected");

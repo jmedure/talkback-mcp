@@ -9,7 +9,7 @@ import type {
 import { lookupParamMap, translateParameter } from "./param-maps/index.js";
 
 // ============================================================
-// Volume / pan conversions
+// Volume / pan / meter conversions
 // ============================================================
 
 export function rawVolumeToDb(raw: number): string {
@@ -31,6 +31,15 @@ export function rawPanToHuman(raw: number): string {
 
 export function rawSendToPercent(raw: number): string {
   return `${Math.round(raw * 100)}%`;
+}
+
+export function rawMeterToDb(left: number, right: number): string {
+  const peak = Math.max(left, right);
+  if (peak <= 0) return "silent";
+  const db = 20 * Math.log10(peak);
+  if (db <= -60) return "silent";
+  const rounded = Math.round(db * 10) / 10;
+  return `${rounded}dB`;
 }
 
 // ============================================================
@@ -81,6 +90,7 @@ function assembleDevice(device: RawDevice): SemanticDevice {
 function assembleTrack(
   track: RawTrack,
   returnTrackNames: Map<string, string>,
+  trackNameMap: Map<string, string>,
 ): SemanticTrack {
   const sends: Record<string, string> = {};
   if (Array.isArray(track.sends)) {
@@ -111,6 +121,15 @@ function assembleTrack(
     }
   }
 
+  // Resolve group name from ID
+  const groupName = track.groupId
+    ? trackNameMap.get(track.groupId) ?? track.groupId
+    : null;
+
+  // Output level from meters
+  const meterLeft = (track as any).outputMeterLeft ?? 0;
+  const meterRight = (track as any).outputMeterRight ?? 0;
+
   return {
     id: track.id,
     name: track.name,
@@ -119,10 +138,14 @@ function assembleTrack(
     panning: rawPanToHuman(track.panning),
     muted: track.mute,
     soloed: track.solo,
-    group: track.groupId,
+    armed: (track as any).arm ?? false,
+    monitoring: (track as any).monitoring ?? "off",
+    group: groupName,
     outputRouting: track.outputRouting,
+    outputLevel: rawMeterToDb(meterLeft, meterRight),
     sends,
     devices,
+    clipNames: (track as any).clipNames ?? [],
   };
 }
 
@@ -141,6 +164,11 @@ function generateSessionSummary(
   parts.push(
     `${tracks.length} tracks${groupCount > 0 ? ` (${groupCount} groups)` : ""}, ${returnTracks.length} returns.`,
   );
+
+  // Master output level
+  if (masterTrack.outputLevel !== "silent") {
+    parts.push(`Master output: ${masterTrack.outputLevel}.`);
+  }
 
   // Note any devices on master
   const masterDevices = masterTrack.devices.filter((d) => d.active);
@@ -166,6 +194,7 @@ export function assembleContext(cache: SessionCache): SemanticSession | null {
   if (!cache.raw) return null;
 
   const { tempo, signature, tracks, returnTracks, masterTrack } = cache.raw;
+  const sampleRate = (cache.raw as any).sampleRate ?? 44100;
 
   // Build return track name map for send labels
   const returnTrackNames = new Map<string, string>();
@@ -173,19 +202,26 @@ export function assembleContext(cache: SessionCache): SemanticSession | null {
     returnTrackNames.set(rt.id, rt.name);
   }
 
+  // Build track name map for group resolution
+  const trackNameMap = new Map<string, string>();
+  for (const t of tracks) {
+    trackNameMap.set(t.id, t.name);
+  }
+
   const semanticTracks = tracks.map((t) =>
-    assembleTrack(t, returnTrackNames),
+    assembleTrack(t, returnTrackNames, trackNameMap),
   );
   const semanticReturns = returnTracks.map((t) =>
-    assembleTrack(t, returnTrackNames),
+    assembleTrack(t, returnTrackNames, trackNameMap),
   );
-  const semanticMaster = assembleTrack(masterTrack, returnTrackNames);
+  const semanticMaster = assembleTrack(masterTrack, returnTrackNames, trackNameMap);
 
   const groupCount = tracks.filter((t) => t.isGroupTrack).length;
 
   return {
     tempo: `${tempo} BPM`,
     signature: `${signature.numerator}/${signature.denominator}`,
+    sampleRate: `${sampleRate} Hz`,
     trackCount: tracks.length,
     groupCount,
     returnTrackCount: returnTracks.length,
