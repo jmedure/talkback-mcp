@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history for changelog generation
 
       - uses: actions/setup-node@v4
         with:
@@ -39,3 +41,80 @@ jobs:
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # After successful publish, collect commits and notify talkback-web
+      - name: Generate changelog and dispatch
+        if: steps.version.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          VERSION="${{ steps.version.outputs.local }}"
+          DATE=$(date -u +%Y-%m-%d)
+
+          # Get commits since the previous tag (skip current tag)
+          PREV_TAG=$(git tag --sort=-v:refname | grep -v "v$VERSION" | head -1)
+          if [ -z "$PREV_TAG" ]; then
+            # First release — all commits
+            COMMITS=$(git log --pretty=format:"%s" HEAD)
+          else
+            COMMITS=$(git log --pretty=format:"%s" "$PREV_TAG"..HEAD)
+          fi
+
+          # Categorize commits by prefix convention:
+          #   feat:/add:  → added
+          #   fix:        → fixed
+          #   improve:/update:/refine: → improved
+          #   Everything else → improved (default)
+          ADDED="[]"
+          FIXED="[]"
+          IMPROVED="[]"
+
+          while IFS= read -r msg; do
+            [ -z "$msg" ] && continue
+            # Strip prefix for cleaner text
+            clean=$(echo "$msg" | sed -E 's/^(feat|add|fix|improve|update|refine|chore|ci|docs|refactor)(\(.+\))?:\s*//')
+            # Capitalize first letter
+            clean="$(echo "${clean:0:1}" | tr '[:lower:]' '[:upper:]')${clean:1}"
+            # Escape quotes for JSON
+            clean=$(echo "$clean" | sed 's/"/\\"/g')
+
+            case "$msg" in
+              feat:*|feat\(*|add:*|add\(*)
+                ADDED=$(echo "$ADDED" | jq --arg c "$clean" '. + [$c]')
+                ;;
+              fix:*|fix\(*)
+                FIXED=$(echo "$FIXED" | jq --arg c "$clean" '. + [$c]')
+                ;;
+              *)
+                IMPROVED=$(echo "$IMPROVED" | jq --arg c "$clean" '. + [$c]')
+                ;;
+            esac
+          done <<< "$COMMITS"
+
+          # Build JSON payload
+          PAYLOAD=$(jq -n \
+            --arg version "$VERSION" \
+            --arg date "$DATE" \
+            --arg component "mcp" \
+            --argjson added "$ADDED" \
+            --argjson improved "$IMPROVED" \
+            --argjson fixed "$FIXED" \
+            '{version: $version, date: $date, component: $component, added: $added, improved: $improved, fixed: $fixed}')
+
+          echo "Dispatching changelog entry:"
+          echo "$PAYLOAD" | jq .
+
+          # Dispatch to talkback-web
+          curl -X POST \
+            -H "Authorization: token $GH_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/jmedure/talkback-web/dispatches \
+            -d "$(jq -n --argjson entry "$PAYLOAD" '{event_type: "changelog-update", client_payload: {entry: $entry}}')"
+
+      # Tag the release
+      - name: Tag release
+        if: steps.version.outputs.changed == 'true'
+        run: |
+          VERSION="${{ steps.version.outputs.local }}"
+          git tag "v$VERSION" || true
+          git push origin "v$VERSION" || true

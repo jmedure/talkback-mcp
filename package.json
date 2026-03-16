@@ -33,7 +33,7 @@
     "claude",
     "model-context-protocol"
   ],
-  "license": "MIT",
+  "license": "PolyForm-Shield-1.0.0",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",
     "dotenv": "^16.4.7",
