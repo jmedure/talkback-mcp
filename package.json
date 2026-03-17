@@ -2,6 +2,11 @@
   "name": "talkback-mcp",
   "version": "0.1.2",
   "description": "MCP server giving AI assistants real-time access to Ableton Live sessions",
+  "mcpName": "io.github.jmedure/talkback",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jmedure/talkback-mcp.git"
+  },
   "type": "module",
   "main": "dist/index.js",
   "bin": {

@@ -1,0 +1,29 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.jmedure/talkback",
+  "description": "MCP server giving AI assistants real-time access to Ableton Live sessions — read tracks, devices, meters, routing, make parameter changes, run spectral analysis, and get mix feedback.",
+  "repository": {
+    "url": "https://github.com/jmedure/talkback-mcp",
+    "source": "github"
+  },
+  "version": "0.1.2",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "talkback-mcp",
+      "version": "0.1.2",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "description": "WebSocket port for the Max for Live bridge connection",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false,
+          "name": "WS_PORT"
+        }
+      ]
+    }
+  ]
+}
