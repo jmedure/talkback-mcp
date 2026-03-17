@@ -4,7 +4,7 @@ Chat with your Ableton session in natural language. Go deeper in your mix, make 
 
 Talkback is an MCP server and Max for Live device that gives AI assistants real-time access to your Ableton Live session — read tracks, adjust parameters, analyze your mix, and get spectral snapshots, all through conversation.
 
-**[talkback.fm](https://talkback.fm)** &nbsp;·&nbsp; **[Docs](https://talkback.fm/docs/getting-started)** &nbsp;·&nbsp; **[Changelog](https://talkback.fm/docs/changelog)**
+**[talkback.createwcare.com](https://talkback.createwcare.com)** &nbsp;·&nbsp; **[Docs](https://talkback.createwcare.com/docs/getting-started)** &nbsp;·&nbsp; **[Changelog](https://talkback.createwcare.com/docs/changelog)**
 
 ## How it works
 
@@ -19,7 +19,7 @@ Ableton Live ↔ M4L Bridge ↔ WebSocket ↔ MCP Server ↔ Claude / Cursor / e
 
 ### 1. Install the Max for Live device
 
-Download [talkback-bridge-v1.2.amxd](https://talkback.fm/downloads/talkback-bridge-v1.2.amxd) and drop it onto your **master track** in Ableton. Make sure the device is toggled on.
+Download [talkback-bridge-v1.2.amxd](https://talkback.createwcare.com/downloads/talkback-bridge-v1.2.amxd) and drop it onto your **master track** in Ableton. Make sure the device is toggled on.
 
 ### 2. Add the MCP server
 
