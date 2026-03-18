@@ -8,6 +8,8 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -118,5 +120,5 @@ jobs:
         if: steps.version.outputs.changed == 'true'
         run: |
           VERSION="${{ steps.version.outputs.local }}"
-          git tag "v$VERSION" || true
-          git push origin "v$VERSION" || true
+          git tag "v$VERSION"
+          git push origin "v$VERSION"
