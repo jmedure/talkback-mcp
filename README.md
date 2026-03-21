@@ -17,6 +17,14 @@ Ableton Live ↔ M4L Bridge ↔ WebSocket ↔ MCP Server ↔ Claude / Cursor / e
 
 ## Quick start
 
+The fastest way to get set up — installs the MCP server and configures Claude Desktop automatically:
+
+```bash
+curl -fsSL https://talkback.createwcare.com/install.sh | bash
+```
+
+Requires [Node.js 18+](https://nodejs.org). See the [full setup guide](https://talkback.createwcare.com/docs/getting-started) for more options.
+
 ### 1. Install the Max for Live device
 
 Download [talkback-bridge-v1.5.amxd](https://talkback.createwcare.com/downloads/talkback-bridge-v1.5.amxd) and drop it onto your **master track** in Ableton. Make sure the device is toggled on.
@@ -59,7 +67,25 @@ claude mcp add --transport stdio talkback-mcp -- npx -y talkback-mcp
 </details>
 
 <details>
-<summary>Other MCP clients (Cursor, Windsurf, etc.)</summary>
+<summary>Cursor</summary>
+
+Add to `.cursor/mcp.json` in your project root:
+
+```json
+{
+  "mcpServers": {
+    "talkback-mcp": {
+      "command": "npx",
+      "args": ["-y", "talkback-mcp"],
+      "env": { "WS_PORT": "8765" }
+    }
+  }
+}
+```
+</details>
+
+<details>
+<summary>Other clients (Windsurf, etc.)</summary>
 
 Point your client at `npx -y talkback-mcp` as the server command with `WS_PORT=8765` as an environment variable.
 

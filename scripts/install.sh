@@ -35,10 +35,14 @@ info "Checking for Node.js..."
 if ! command -v node &>/dev/null; then
   fail "Node.js is not installed."
   echo ""
+  echo "  Node.js is a tool that runs talkback behind the scenes — you won't use it directly."
   echo "  Talkback requires Node.js 18 or later."
   echo ""
-  echo "  Install it from: https://nodejs.org"
-  echo "  (download the LTS version, run the installer, then run this script again)"
+  echo "  To install it:"
+  echo "  1. Go to https://nodejs.org"
+  echo "  2. Click the big green LTS button"
+  echo "  3. Open the downloaded file and follow the prompts"
+  echo "  4. Close and re-open Terminal, then run this script again"
   echo ""
   if command -v brew &>/dev/null; then
     echo -e "  Or with Homebrew: ${DIM}brew install node${RESET}"
@@ -71,12 +75,17 @@ ok "Node.js $NODE_VERSION"
 # ── Step 2: Install talkback-mcp ───────────────────────────
 info "Installing talkback-mcp..."
 
-if npm install -g talkback-mcp 2>/dev/null; then
+NPM_STDERR=$(mktemp)
+trap "rm -f '$NPM_STDERR'" EXIT
+
+if npm install -g talkback-mcp 2>"$NPM_STDERR"; then
   ok "talkback-mcp installed"
 else
-  fail "npm install failed."
+  fail "npm install failed:"
   echo ""
-  echo "  If you got a permissions error, try:"
+  head -20 "$NPM_STDERR"
+  echo ""
+  echo "  If this is a permissions error, try:"
   echo -e "  ${DIM}sudo npm install -g talkback-mcp${RESET}"
   echo ""
   exit 1
@@ -184,14 +193,14 @@ echo ""
 if [ "$CONFIGURED" = true ]; then
   echo "  Next steps:"
   echo ""
-  echo "  1. Download the Max for Live device from https://talkback.createwcare.com/docs/getting-started"
+  echo "  1. Download the Max for Live device: https://talkback.createwcare.com/downloads/talkback-bridge-v1.5.amxd"
   echo "  2. Drag it onto your master track in Ableton"
   echo "  3. Restart Claude Desktop"
   echo "  4. Start chatting about your session"
 else
   echo "  Next steps:"
   echo ""
-  echo "  1. Download the Max for Live device from https://talkback.createwcare.com/docs/getting-started"
+  echo "  1. Download the Max for Live device: https://talkback.createwcare.com/downloads/talkback-bridge-v1.5.amxd"
   echo "  2. Drag it onto your master track in Ableton"
   echo "  3. Configure your MCP client (see https://talkback.createwcare.com/docs/getting-started)"
   echo "  4. Start chatting about your session"
