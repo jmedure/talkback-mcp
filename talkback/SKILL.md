@@ -1,6 +1,6 @@
 ---
-name: talkback-setup
-description: Set up talkback-mcp — connect AI assistants to Ableton Live via MCP. Use when the user wants to install, configure, or troubleshoot talkback, or mentions connecting to Ableton.
+name: talkback
+description: Set up, verify, or uninstall talkback-mcp — connect AI assistants to Ableton Live via MCP. Use when the user wants to install, configure, troubleshoot, check, or remove talkback, or mentions connecting to Ableton.
 license: PolyForm Shield 1.0.0
 compatibility: Requires Node.js 18+ and macOS or Windows. Works with any MCP-compatible agent.
 metadata:
@@ -8,13 +8,29 @@ metadata:
   version: "1.0"
 ---
 
-# Talkback Setup
+# Talkback
 
-You are setting up **talkback** — an MCP server + Max for Live device that gives AI assistants real-time access to Ableton Live sessions. Be proactive. Don't ask questions you can answer by checking. Move fast, explain as you go.
+You are helping with **talkback** — an MCP server + Max for Live device that gives AI assistants real-time access to Ableton Live sessions. Be proactive. Don't ask questions you can answer by checking. Move fast, explain as you go.
+
+Determine what the user needs: **setup** (install and configure), **verify** (check if things are working), or **uninstall** (remove talkback). If unclear, check for an existing setup first — if talkback is already configured, ask what they need help with.
 
 ## Approach
 
 Act, don't ask. Check the environment yourself, fix what you can, and only pause for things you literally cannot do (like downloading a file or dragging a device in Ableton). The user may be a music producer who has never used Terminal — keep language plain and celebrate progress.
+
+## MCP client config paths
+
+| Client | Config path |
+|--------|------------|
+| Claude Desktop (macOS) | `~/Library/Application Support/Claude/claude_desktop_config.json` |
+| Claude Desktop (Windows) | `%APPDATA%\Claude\claude_desktop_config.json` |
+| Claude Code | Has `claude` CLI available |
+| Cursor | `.cursor/mcp.json` in project root or global settings |
+| Windsurf | `~/.windsurf/mcp.json` or via Settings > MCP Servers |
+
+---
+
+# Setup
 
 ## Step 0: Check for existing setup
 
@@ -22,7 +38,7 @@ Before doing anything, check if talkback is already configured:
 
 1. **Check for talkback tools.** If you already have access to tools like `get_session_context`, `analyze_mix`, or `get_track_details`, talkback is already configured in this client. Skip straight to **Verify** below.
 
-2. **Check MCP config files.** Search the config paths in the table below for `"talkback-mcp"`. If it's already there, tell the user: "Talkback is already configured in [client]. Let me verify the connection..." and skip to **Verify**.
+2. **Check MCP config files.** Search the config paths in the table above for `"talkback-mcp"`. If it's already there, tell the user: "Talkback is already configured in [client]. Let me verify the connection..." and skip to **Verify**.
 
 3. **Check for a global install.** Run `npm list -g talkback-mcp 2>/dev/null`. If installed, note it — the user may just need a config entry pointing to it.
 
@@ -39,15 +55,7 @@ Run `node --version`. If Node 18+ is present, report it and move on. If not:
 
 ## Step 2: Detect your environment
 
-Figure out which MCP client you're running in. You usually know this from your own context — use that. If uncertain, check for config files:
-
-| Client | Config path |
-|--------|------------|
-| Claude Desktop (macOS) | `~/Library/Application Support/Claude/claude_desktop_config.json` |
-| Claude Desktop (Windows) | `%APPDATA%\Claude\claude_desktop_config.json` |
-| Claude Code | Has `claude` CLI available |
-| Cursor | `.cursor/mcp.json` in project root or global settings |
-| Windsurf | `~/.windsurf/mcp.json` or via Settings > MCP Servers |
+Figure out which MCP client you're running in. You usually know this from your own context — use that. If uncertain, check for config files from the table above.
 
 Report what you found: "Looks like we're in [client name]..."
 
@@ -91,7 +99,9 @@ You cannot download or install the M4L device — the user has to do this manual
 
 "Let me know when it's on your master track and I'll verify the connection."
 
-## Verify
+---
+
+# Verify
 
 Run through these checks and report each result:
 
@@ -117,3 +127,48 @@ If verify fails, check these in order:
 5. If using nvm/fnm with Claude Desktop, the config must use the absolute npx path (run `which npx`)
 
 For more: https://talkback.createwcare.com/docs/troubleshooting
+
+---
+
+# Uninstall
+
+## Step 1: Detect what's installed
+
+Check for talkback's footprint:
+
+1. **MCP config:** Search the config paths in the table above for `"talkback-mcp"`. Note which clients have it.
+2. **Global npm package:** Run `npm list -g talkback-mcp 2>/dev/null` to check for a global install.
+
+Report what you found: "Found talkback configured in [client(s)] and installed globally via npm."
+
+## Step 2: Remove the MCP config entry
+
+For each client that has a talkback entry:
+
+### If you can write files:
+
+- **Claude Desktop:** Read the config file, remove the `"talkback-mcp"` key from `mcpServers`, write the file back. Do not remove other MCP server entries.
+- **Claude Code:** Run `claude mcp remove talkback-mcp`
+- **Cursor / Windsurf:** Read the config file, remove the `"talkback-mcp"` key from `mcpServers`, write the file back.
+
+### If you can't write files:
+
+Tell the user exactly which file to open and what to delete: "Open [path], find the `talkback-mcp` entry inside `mcpServers`, delete it, and save."
+
+## Step 3: Remove the global npm package
+
+If talkback-mcp is installed globally, run:
+
+```bash
+npm uninstall -g talkback-mcp
+```
+
+If you can't run commands, tell the user to run it.
+
+## Step 4: Remove the M4L device
+
+You can't do this — the user has to:
+
+"Last step: in Ableton, delete the talkback bridge device from your master track. You can just select it and hit Delete."
+
+Report: "Talkback has been fully removed from [client(s)] and uninstalled from npm. The M4L device just needs to be removed from Ableton."
